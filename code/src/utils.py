@@ -38,8 +38,10 @@ def nodes_get_f1(predicts, golden):
 	recall = overlap / expected
 	precision = overlap / predicted
 	f1 = np.divide(2 * recall * precision, recall + precision)
+	res = np.zeros((2, 3))
 	logging.info("Dataset-wide F1, precision and recall:")
 	logging.info(', '.join([str(item) for item in [f1.item(), precision.item(), recall.item()]]))
+	res[0, :] = [f1.item(), precision.item(), recall.item()]
 	overlap = (overlap_end - overlap_start)
 	recall = overlap / (gold_end - gold_start)
 	precision = overlap[(pred_end - pred_start) != 0] / (pred_end - pred_start)[(pred_end - pred_start) != 0]
@@ -50,8 +52,10 @@ def nodes_get_f1(predicts, golden):
 	f1 = 2 * recall * precision / (recall + precision)
 	logging.info("Averaged F1, precision and recall:")
 	logging.info(', '.join([str(item) for item in [f1.item(), precision.item(), recall.item()]]))
+	res[1, :] = [f1.item(), precision.item(), recall.item()]
 	logging.info("Span accuracy")
 	logging.info(acc)
+	return acc, res
 
 def get_PRF(actual, predicted):
 	precision, recall = 0, 0
@@ -84,8 +88,10 @@ def edges_get_f1(predicts, golden):
 	precision = common/preds
 	recall = common/actual
 	f1 = 2 * recall * precision / (recall + precision)
+	res = np.zeros((2, 3))
 	logging.info("Dataset-wide F1, precision and recall:")
 	logging.info(', '.join([str(item) for item in [f1, precision, recall]]))
+	res[0, :] = [f1, precision, recall]
 	f1, precision, recall = [], [], []
 	for question in range(rows):
 		f, p, r = get_PRF(golden[question], predicts[question])
@@ -97,8 +103,10 @@ def edges_get_f1(predicts, golden):
 	f1 = np.divide(2 * recall * precision, recall + precision)
 	logging.info("Averaged F1, precision and recall:")
 	logging.info(', '.join([str(item) for item in [f1, precision, recall]]))
+	res[1, :] = [f1, precision, recall]
 	logging.info("Span accuracy")
 	logging.info(acc/rows)
+	return acc/rows, res
 
 
 def get_tf_idf_query_similarity(vectorizer, docs_tfidf, query):
