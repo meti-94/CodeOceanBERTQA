@@ -14,7 +14,7 @@ from tqdm import tqdm
 import torch.nn.functional as F
 from sklearn.model_selection import KFold
 from sklearn.model_selection import train_test_split
-from TorchCRF import CRF
+from torchcrf  import CRF
 import sys
 from transformers import DistilBertTokenizer, DistilBertModel
 import logging
@@ -143,28 +143,31 @@ class BertLSTMCRF(torch.nn.Module):
 		super().__init__(**kw)
 		self.bert = bert
 		dim = self.bert.config.hidden_size
-		self.nodestart = torch.nn.Linear(dim, 1)
-		self.nodeend = torch.nn.Linear(dim, 1)
+		self.nodestart = torch.nn.Linear(2*100, 1)
+		self.nodeend = torch.nn.Linear(2*100, 1)
 		
-		# self.edgestart = torch.nn.Linear(dim, 1)
-		# self.edgeend = torch.nn.Linear(dim, 1)
-		self.edgespan = torch.nn.Linear(dim, 1)
+		self.edgespan = torch.nn.Linear(2*100, 1)
 		
 		self.dropout = torch.nn.Dropout(p=dropout)
 		self.clip_len = clip_len
 
 		self.tokenizer = tokenizer
 
-		self.crf_entity = CRF(2, batch_first=True)
-		self.crf_relation = CRF(2, batch_first=True)
 		self.lstm = torch.nn.LSTM(
-            input_size=dim,
-            hidden_size=100,
-            num_layers=2,
-            dropout=0.2,
-            batch_first=True,
-            bidirectional=True,
-        )
+			input_size=dim,
+			hidden_size=100,
+			num_layers=35,
+			dropout=0.2,
+			batch_first=True,
+			bidirectional=True,
+		)
+		self.classifier = torch.nn.Linear(2 * 100, 35)
+		self.crf = CRF(2, batch_first=True)
+		self.m1 = nn.Softmax(dim=1)
+		self.m2 = nn.Softmax(dim=1)
+		self.h = torch.randn(70, 200, 100).to("cuda:0")
+		self.c = torch.randn(70, 200, 100).to("cuda:0")
+
 	def forward(self, x):	   # x: (batsize, seqlen) ints
 		mask = (x != 0).long()
 		if self.clip_len:
@@ -172,18 +175,19 @@ class BertLSTMCRF(torch.nn.Module):
 			maxlen = min(x.size(1), maxlen + 1)
 			mask = mask[:, :maxlen]
 			x = x[:, :maxlen]
+		b, l = x.size()
 		bert_outputs = self.bert(x, attention_mask=mask, output_hidden_states=False)
 		lhs = bert_outputs.last_hidden_state
 		a = self.dropout(lhs)
-		lstm_out, *_ = self.lstm(a)
-		logits_node_start = self.nodestart(lhs)
-		logits_node_end = self.nodeend(lhs)
-		logits_edge_span = self.edgespan(lhs)
-		# logits_edge_start = self.edgestart(lhs)
-		# logits_edge_end = self.edgeend(lhs)
-		# print(logits_node_start.size(), logits_node_end.size(), logits_edge_span.size())
-		logits = torch.cat([logits_node_start.transpose(1, 2), logits_node_end.transpose(1, 2), 
-							logits_edge_span.transpose(1, 2)], 1)
+		lstm_out, (self.h,self.c) = self.lstm(a, (self.h,self.c))
+		print(lstm_out.size())
+		lstm_out = lstm_out[:, -1, :]
+		lstm_out = lstm_out[:, None, :]
+		logits_node_start = self.nodestart(lstm_out)
+		logits_node_end = self.nodeend(lstm_out)
+		logits_edge_span = self.edgespan(lstm_out)
+		logits = torch.cat([self.m1(logits_node_start[:, :, :l]), self.m2(logits_node_end[:, :, :l]), 
+							logits_edge_span[:, :, :l]], 1)
 		return logits
 
 
@@ -242,7 +246,7 @@ class TrainingLoop:
 				maxlen = logits.size()[-1]
 				actual = torch.cat((nodes_onehot, torch.unsqueeze(y[:, 2:], 1)[:, :, :maxlen]), 1)
 				
-
+				# print(logits.size(), actual.size())
 				loss = loss_function(logits, actual, reduction='sum')
 				losses.append(loss)
 				loss.backward()
@@ -331,7 +335,7 @@ class TrainingLoop:
 		else:
 			return node, edge
 	def readable_predict_article(self, device, _input='Where was Bill Gates Born?', print_result=True):
-    ### getting node and edge
+	### getting node and edge
 		addspecialtokens = lambda string:f'[CLS] {string} [SEP]'
 		wordstoberttokens = lambda string:self.model.tokenizer.tokenize(string)
 		berttokenstoids = lambda tokens:self.model.tokenizer.convert_tokens_to_ids(tokens)
@@ -354,10 +358,10 @@ class TrainingLoop:
 if __name__=='__main__':
 	model_type = sys.argv[1]
 	model_mapping = {'MultiDepthNodeEdgeDetector':MultiDepthNodeEdgeDetector,
-              'BertLSTMCRF':BertLSTMCRF, 
-              'BertCNN':BertCNN,
-              'NodeEdgeDetector':NodeEdgeDetector
-            }
+			  'BertLSTMCRF':BertLSTMCRF, 
+			  'BertCNN':BertCNN,
+			  'NodeEdgeDetector':NodeEdgeDetector
+			}
 	dataset_type = sys.argv[2]
 	data_mapping = {'sq':sq_read_data,
 					'rsq':read_data}
