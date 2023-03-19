@@ -7,6 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 from utils import read_data, nodes_get_f1, edges_get_f1, sq_read_data
 from torch.nn.functional import mse_loss
 from torch.nn.functional import one_hot
+from torch.nn.utils.rnn import pack_padded_sequence
 import numpy as np 
 np.seterr(divide='ignore', invalid='ignore')
 from tabulate import tabulate
@@ -143,24 +144,16 @@ class BertLSTMCRF(torch.nn.Module):
 		super().__init__(**kw)
 		self.bert = bert
 		dim = self.bert.config.hidden_size
-		self.nodestart = torch.nn.Linear(2*100, 1)
-		self.nodeend = torch.nn.Linear(2*100, 1)
+		self.nodestart = torch.nn.Linear(2*dim, 35)
+		self.nodeend = torch.nn.Linear(2*dim, 35)
 		
-		self.edgespan = torch.nn.Linear(2*100, 1)
+		self.edgespan = torch.nn.Linear(2*dim, 35)
 		
 		self.dropout = torch.nn.Dropout(p=dropout)
 		self.clip_len = clip_len
 
 		self.tokenizer = tokenizer
-
-		self.lstm = torch.nn.LSTM(
-			input_size=dim,
-			hidden_size=100,
-			num_layers=35,
-			dropout=0.2,
-			batch_first=True,
-			bidirectional=True,
-		)
+		self.lstm = nn.LSTM(dim, dim, bidirectional=True)
 		self.classifier = torch.nn.Linear(2 * 100, 35)
 		self.crf = CRF(2, batch_first=True)
 		self.m1 = nn.Softmax(dim=1)
@@ -178,16 +171,16 @@ class BertLSTMCRF(torch.nn.Module):
 		b, l = x.size()
 		bert_outputs = self.bert(x, attention_mask=mask, output_hidden_states=False)
 		lhs = bert_outputs.last_hidden_state
-		a = self.dropout(lhs)
-		lstm_out, (self.h,self.c) = self.lstm(a, (self.h,self.c))
-		print(lstm_out.size())
-		lstm_out = lstm_out[:, -1, :]
-		lstm_out = lstm_out[:, None, :]
-		logits_node_start = self.nodestart(lstm_out)
-		logits_node_end = self.nodeend(lstm_out)
-		logits_edge_span = self.edgespan(lstm_out)
-		logits = torch.cat([self.m1(logits_node_start[:, :, :l]), self.m2(logits_node_end[:, :, :l]), 
-							logits_edge_span[:, :, :l]], 1)
+		encoded_layers = lhs.permute(1, 0, 2)
+		enc_hiddens, (last_hidden, last_cell) = self.lstm(pack_padded_sequence(encoded_layers, torch.LongTensor([l for _ in range(b)])))
+		output_hidden = torch.cat((last_hidden[0], last_hidden[1]), dim=1)
+		output_hidden = self.dropout(output_hidden)
+		logits_node_start = self.nodestart(output_hidden)
+		logits_node_end = self.nodeend(output_hidden)
+		logits_edge_span = self.edgespan(output_hidden)
+		# print(logits_node_start.size(), logits_node_end.size(), logits_edge_span.size())
+		logits = torch.cat([logits_node_start[:, None,:l], logits_node_end[:, None,:l], 
+							logits_edge_span[:, None, :l]], 1)
 		return logits
 
 
@@ -390,7 +383,7 @@ if __name__=='__main__':
 			node_edge_detector = model_mapping[model_type](bert, tokenizer, dropout=torch.tensor(0.5))
 			optimizer = AdamW
 			kw = {'lr':0.0002, 'weight_decay':0.1}
-			tl = TrainingLoop(node_edge_detector, optimizer, True, 6, **kw)
+			tl = TrainingLoop(node_edge_detector, optimizer, True, 8, **kw)
 			
 			train_dataset = BordersDataset(train)
 			train_dataloader = DataLoader(dataset=train_dataset, batch_size=200, shuffle=True, pin_memory=True)
