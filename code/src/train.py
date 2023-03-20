@@ -208,7 +208,7 @@ class TrainingLoop:
 	Everything related to model training
 	'''
 	def __init__(self, model, optimizer, freezeemb=True, 
-				 epochs=1, **kw):
+				 epochs=6, **kw):
 		self.model = model
 		params = []
 		for paramname, param in self.model.named_parameters():
@@ -386,7 +386,7 @@ if __name__=='__main__':
 				node_edge_detector = model_mapping[model_type](bert, tokenizer, dropout=torch.tensor(0.5))
 				optimizer = AdamW
 				kw = {'lr':0.0002, 'weight_decay':0.1}
-				tl = TrainingLoop(node_edge_detector, optimizer, True, 8, **kw)
+				tl = TrainingLoop(node_edge_detector, optimizer, True, 6, **kw)
 				
 				train_dataset = BordersDataset(train)
 				train_dataloader = DataLoader(dataset=train_dataset, batch_size=200, shuffle=True, pin_memory=True)
