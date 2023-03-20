@@ -349,41 +349,79 @@ class TrainingLoop:
 			return wordstoberttokens, berttokenstoids, input_token_ids, nodes_borders, edges_spans, node, edge
 
 if __name__=='__main__':
-	model_type = sys.argv[1]
+	save_model = sys.argv[1]
+	model_type = sys.argv[2]
 	model_mapping = {'MultiDepthNodeEdgeDetector':MultiDepthNodeEdgeDetector,
 			  'BertLSTMCRF':BertLSTMCRF, 
 			  'BertCNN':BertCNN,
 			  'NodeEdgeDetector':NodeEdgeDetector
 			}
-	dataset_type = sys.argv[2]
+	dataset_type = sys.argv[3]
 	data_mapping = {'sq':sq_read_data,
 					'rsq':read_data}
-	report_on = sys.argv[3]
-	if dataset_type=='rsq':
-		train, valid, test = data_mapping[dataset_type]()
-		X = np.vstack((train[0], valid[0], test[0]))
-		y = np.vstack((train[1], valid[1], test[1]))
-		kf = KFold(n_splits=4, random_state=99, shuffle=True)
-		fold = 1
-		node_accuracy = []
-		edge_accuracy = []
-		node_results = np.zeros((4, 2, 3))
-		edge_results = np.zeros((4, 2, 3))
-		for train_index, test_index in kf.split(X, y):
-			X_train, X_test = X[train_index], X[test_index]
-			y_train, y_test = y[train_index], y[test_index]
-			X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.15, random_state=99)
-			train = (X_train, y_train)
-			valid = (X_valid, y_valid)
-			test = (X_test, y_test)
-			logging.info(f'\n\n############# Fold Number {fold} #############\n\n')
-			fold+=1
+
+	report_on = sys.argv[4]
+	if save_model=='False':
+		if dataset_type=='rsq':
+			train, valid, test = data_mapping[dataset_type]()
+			X = np.vstack((train[0], valid[0], test[0]))
+			y = np.vstack((train[1], valid[1], test[1]))
+			kf = KFold(n_splits=4, random_state=99, shuffle=True)
+			fold = 1
+			node_accuracy = []
+			edge_accuracy = []
+			node_results = np.zeros((4, 2, 3))
+			edge_results = np.zeros((4, 2, 3))
+			for train_index, test_index in kf.split(X, y):
+				X_train, X_test = X[train_index], X[test_index]
+				y_train, y_test = y[train_index], y[test_index]
+				X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.15, random_state=99)
+				train = (X_train, y_train)
+				valid = (X_valid, y_valid)
+				test = (X_test, y_test)
+				logging.info(f'\n\n############# Fold Number {fold} #############\n\n')
+				fold+=1
+				bert = BertModel.from_pretrained("bert-base-uncased")
+				tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+				node_edge_detector = model_mapping[model_type](bert, tokenizer, dropout=torch.tensor(0.5))
+				optimizer = AdamW
+				kw = {'lr':0.0002, 'weight_decay':0.1}
+				tl = TrainingLoop(node_edge_detector, optimizer, True, 8, **kw)
+				
+				train_dataset = BordersDataset(train)
+				train_dataloader = DataLoader(dataset=train_dataset, batch_size=200, shuffle=True, pin_memory=True)
+				valid_dataset = BordersDataset(valid)
+				valid_dataloader = DataLoader(dataset=valid_dataset, batch_size=200, shuffle=False, pin_memory=True)
+				test_dataset = BordersDataset(test)
+				test_dataloader = DataLoader(dataset=test_dataset, batch_size=100, shuffle=False, pin_memory=True)
+				logging.info(f'Train Dataset Contains {len(train_dataset)} Samples.')
+				logging.info(f'Valid Dataset Contains {len(valid_dataset)} Samples.')
+				logging.info(f'Test Dataset Contains {len(test_dataset)} Samples.')
+				device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+				loss = mse_loss
+				tl.train(train_dataloader, valid_dataloader, loss)
+				if report_on=='test':
+					acn, ace, resn, rese = tl.predict(test_dataloader, device)
+				if report_on=='valid':
+					acn, ace, resn, rese = tl.predict(valid_dataloader, device)
+				node_accuracy.append(acn)
+				edge_accuracy.append(ace)
+				node_results[fold-2, :, :] = resn
+				edge_results[fold-2, :, :] = rese
+			print('')
+			print(f'Entity Span Accuracy: {np.mean(np.array(ace))}\nRelation Span Accuracy: {np.mean(np.array(acn))}')
+			print(f'Entity (Precision, Recall, F1, F1*) {np.mean(node_results, axis=0)}')
+			print(f'Relation (Precision, Recall, F1, F1*) {np.mean(edge_results, axis=0)}')
+			
+
+		if dataset_type=='sq':
+			train, valid, test = sq_read_data('train'), sq_read_data('valid'), sq_read_data('test')
 			bert = BertModel.from_pretrained("bert-base-uncased")
 			tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 			node_edge_detector = model_mapping[model_type](bert, tokenizer, dropout=torch.tensor(0.5))
 			optimizer = AdamW
 			kw = {'lr':0.0002, 'weight_decay':0.1}
-			tl = TrainingLoop(node_edge_detector, optimizer, True, 8, **kw)
+			tl = TrainingLoop(node_edge_detector, optimizer, True, **kw)
 			
 			train_dataset = BordersDataset(train)
 			train_dataloader = DataLoader(dataset=train_dataset, batch_size=200, shuffle=True, pin_memory=True)
@@ -391,28 +429,23 @@ if __name__=='__main__':
 			valid_dataloader = DataLoader(dataset=valid_dataset, batch_size=200, shuffle=False, pin_memory=True)
 			test_dataset = BordersDataset(test)
 			test_dataloader = DataLoader(dataset=test_dataset, batch_size=100, shuffle=False, pin_memory=True)
+			
 			logging.info(f'Train Dataset Contains {len(train_dataset)} Samples.')
 			logging.info(f'Valid Dataset Contains {len(valid_dataset)} Samples.')
 			logging.info(f'Test Dataset Contains {len(test_dataset)} Samples.')
+
 			device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 			loss = mse_loss
 			tl.train(train_dataloader, valid_dataloader, loss)
-			if report_on=='test':
-				acn, ace, resn, rese = tl.predict(test_dataloader, device)
-			if report_on=='valid':
-				acn, ace, resn, rese = tl.predict(valid_dataloader, device)
-			node_accuracy.append(acn)
-			edge_accuracy.append(ace)
-			node_results[fold-2, :, :] = resn
-			edge_results[fold-2, :, :] = rese
-		print('')
-		print(f'Entity Span Accuracy: {np.mean(np.array(ace))}\nRelation Span Accuracy: {np.mean(np.array(acn))}')
-		print(f'Entity (Precision, Recall, F1, F1*) {np.mean(node_results, axis=0)}')
-		print(f'Relation (Precision, Recall, F1, F1*) {np.mean(edge_results, axis=0)}')
-		
-
-	if dataset_type=='sq':
-		train, valid, test = sq_read_data('train'), sq_read_data('valid'), sq_read_data('test')
+			tl.save()
+			##################################################
+			tl.load()
+			tl.predict(test_dataloader, device)
+			##################################################
+			tl.readable_predict(device, print_result=True)
+	else:
+		# train, valid, test = sq_read_data('train'), sq_read_data('valid'), sq_read_data('test')
+		train, valid, test = read_data()
 		bert = BertModel.from_pretrained("bert-base-uncased")
 		tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 		node_edge_detector = model_mapping[model_type](bert, tokenizer, dropout=torch.tensor(0.5))

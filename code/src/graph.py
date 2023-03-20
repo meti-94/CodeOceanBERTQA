@@ -9,10 +9,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 from pattern.en import conjugate, lemma, lexeme,PRESENT,SG,PAST
 import sys
 import re
-import pyterrier as pt
-pt.init()
-checkpoint="http://www.dcs.gla.ac.uk/~craigm/colbert.dnn.zip"
-import pyterrier_colbert.indexing
 import logging
 logging.basicConfig(level=logging.WARNING)
 #### pattern python>=3.7 compatibility problem
@@ -31,7 +27,7 @@ Searchin with tfidf and Cosign Similarity
 '''
 
 class ReverbKnowledgeBaseGraph:
-	def __init__(self, path='../data/reverb_wikipedia_tuples-1.1.txt'):
+	def __init__(self, path='../../data/Reverb1.1/reverb_wikipedia_tuples-1.1.txt'):
 		super().__init__()
 		df = pd.read_csv(path, sep='\t', header=None)
 		reverb_columns_name = ['ExID', 'arg1', 'rel', 'arg2', 'narg1', 'nrel', 'narg2', 'csents', 'conf', 'urls']
@@ -93,7 +89,7 @@ class ReverbKnowledgeBaseGraph:
 		edges = self.edgesquery(edge)
 
 class ReverbKnowledgeBaseNN:
-	def __init__(self, path='../data/reverb_wikipedia_tuples-1.1.txt'):
+	def __init__(self, path='../../data/Reverb1.1/reverb_wikipedia_tuples-1.1.txt'):
 		super().__init__()
 		df = pd.read_csv(path, sep='\t', header=None)
 		# df = df[:5000]
@@ -136,7 +132,7 @@ class ReverbKnowledgeBaseNN:
 	
 
 class ReverbKnowledgeBase:
-	def __init__(self, path='../data/reverb_wikipedia_tuples-1.1.txt'):
+	def __init__(self, path='../../data/Reverb1.1/reverb_wikipedia_tuples-1.1.txt'):
 		super().__init__()
 		df = pd.read_csv(path, sep='\t', header=None)
 		reverb_columns_name = ['ExID', 'arg1', 'rel', 'arg2', 'narg1', 'nrel', 'narg2', 'csents', 'conf', 'urls']
@@ -217,7 +213,7 @@ class ReverbKnowledgeBase:
 			return sorted_pruned[:min(len(sorted_pruned), 100)]
 
 if __name__=='__main__':
-	RKBNN = ReverbKnowledgeBaseNN('/content/reverb_wikipedia_tuples-1.1.txt') #	'./sample_reverb_tuples.txt'
+	RKBNN = ReverbKnowledgeBaseNN('../../data/Reverb1.1/reverb_wikipedia_tuples-1.1.txt') #	'./sample_reverb_tuples.txt'
 	# print(len(RKBG.nodes_vectorizer.vocabulary_), len(RKBG.edges_vectorizer.vocabulary_))
 	# print(RKBG.tfidf_query(node='fishkind', edge='grew up in'))
 	print(RKBNN.NN_query(node='abegg', edge='did die'))

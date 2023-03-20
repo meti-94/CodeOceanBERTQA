@@ -24,9 +24,12 @@ if __name__=='__main__':
 
 	RKBG = mapping[similarity_type]()
 
-	test_df = pd.read_excel('../data/test.xlsx')
+	test_df = pd.read_excel('../../data/Intermediate/valid.xlsx')
 	actual = test_df['Reverb_no'].to_list()
 	system_results = []
+	candidates = []
+	all_nodes = []
+	all_edges = []
 	for index, row in tqdm(test_df.iterrows(), total=test_df.shape[0]):
 		node, edge = tl.readable_predict(device, _input=row['Question'], print_result=False)
 		node = ' '.join(node); edge = ' '.join(edge)
@@ -35,11 +38,13 @@ if __name__=='__main__':
 			print("The Question: ", row['Question'].lower().split())
 			print(f'Node: {node}, Edge: {edge}')
 		temp = RKBG.query(node=node, edge=edge)
-		# print('Sorted candidates: ', temp[:min(len(temp), 25)])
-		# print('Actual line number: ', row['Reverb_no'])
+		all_nodes.append(node)
+		all_edges.append(edge)
 		system_results.append(temp)
+	test_df['node'] = all_nodes
+	test_df['edge'] = all_edges
 	test_df['sys'] = system_results
-	test_df.to_excel('results.xlsx')
+	test_df.to_excel('../../data/Candidates/valid_results.xlsx')
 	print(get_hit(actual, system_results))
 
 		
