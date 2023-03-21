@@ -9,6 +9,7 @@ Script to perform whole system Evaluation
 
 if __name__=='__main__':
 	similarity_type = sys.argv[1]
+	data_type = sys.argv[2]
 	mapping = {'tfidf':ReverbKnowledgeBase,
               'NN':ReverbKnowledgeBaseNN, 
             }
@@ -24,7 +25,7 @@ if __name__=='__main__':
 
 	RKBG = mapping[similarity_type]()
 
-	test_df = pd.read_excel('../../data/Intermediate/valid.xlsx')
+	test_df = pd.read_excel(f'../../data/Intermediate/{data_type}.xlsx')
 	actual = test_df['Reverb_no'].to_list()
 	system_results = []
 	candidates = []
@@ -44,7 +45,7 @@ if __name__=='__main__':
 	test_df['node'] = all_nodes
 	test_df['edge'] = all_edges
 	test_df['sys'] = system_results
-	test_df.to_excel('../../data/Candidates/valid_results.xlsx')
+	test_df.to_excel(f'../../data/Candidates/{data_type}_results.xlsx')
 	print(get_hit(actual, system_results))
 
 		
