@@ -302,10 +302,10 @@ class TrainingLoop:
 			return acn, ace, resn, rese
 
 	
-	def save(self, save_path='../../data/Models/node_edge_bert.pt'):
+	def save(self, save_path='/data/Models/node_edge_bert.pt'):
 		torch.save(self.model, save_path)
 	
-	def load(self, save_path='../../data/Models/node_edge_bert.pt'):
+	def load(self, save_path='/data/Models/node_edge_bert.pt'):
 		self.model = torch.load(save_path)
 
 	def readable_predict(self, device, _input='Where was Bill Gates Born?', print_result=True):
@@ -437,9 +437,7 @@ if __name__=='__main__':
 			device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 			loss = mse_loss
 			tl.train(train_dataloader, valid_dataloader, loss)
-			tl.save()
-			##################################################
-			tl.load()
+			
 			tl.predict(test_dataloader, device)
 			##################################################
 			tl.readable_predict(device, print_result=True)

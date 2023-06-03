@@ -1,0 +1,36 @@
+metadata_version: 1
+name: Improved Relation Span Detection in Question Answering Systems over Extracted
+  Knowledge Bases Capsule
+description: In recent years, AI studies have been focused on developing question
+  answering systems to deal with automatic answering natural language questions. Knowledge
+  based open domain question answering systems can generate accurate answers to questions
+  posed by users in various fields. However, these systems need further development
+  to scale the domain of answer retrieval systems and question interpretation. Deep
+  learning methods are one of the current approaches in this research area. Existing
+  knowledge-based question answering systems use either manually curated knowledge
+  bases such as Freebase or knowledge bases automatically extracted from unstructured
+  texts such as Reverb, or a combination of both. In the case of open domain question
+  answering systems, limited access to knowledge bases reduces the expandability of
+  the system. Systems that use only curated knowledge bases have high precision with
+  limited coverage; while systems that use extracted knowledge bases have higher coverage
+  with generally lower precision. To improve the precision of question answering over
+  extracted knowledge bases, this paper presents a solution to enhance detection of
+  the relation span in the question, corresponding to the triples of the extracted
+  knowledge base. First, a dataset with 16,675 simple questions is introduced along
+  with answers based on the Reverb triples. Then, a method based on a fine-tuned BERT
+  model for relation span detection in the questions is proposed. The results showed
+  an increase in the precision of the relation span detection, so that the precision
+  reached 99.65%.
+authors:
+- name: Somayyeh Behmanesh
+  affiliations:
+  - name: Shahid Beheshti University
+- name: Alireza Talebpour
+  affiliations:
+  - name: Shahid Beheshti University
+- name: Mehrnoush Shamsfard
+  affiliations:
+  - name: Shahid Beheshti University
+- name: Mohammad Mahdi Jafari
+  affiliations:
+  - name: Shahid Beheshti University

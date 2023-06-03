@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -ex
+
+python3 -u tab1.py "$@"
+python3 -u tab2.py "$@"
+python3 -u tab3.py "$@"
+
+
+# cd /code/BuboQA/entities
+# python3 -c "print('\n\n', '#'*20, 'Table 5 GRU'.upper(), '#'*20)"
+# python3 -u train.py  --entity_detection_mode GRU \
+#                                     --fix_embed --data_dir /data/SimpleQuestionNotationEntity \
+#                                     --batch_size 256 \
+#                                     --vector_cache /data/Cache/sq_glove300d.pt
+# python3 -c "print('\n\n', '#'*20, 'Table 5 LSTM'.upper(), '#'*20)"
+# python3 -u train.py  --entity_detection_mode LSTM \
+#                                     --fix_embed --data_dir /data/SimpleQuestionNotationEntity \
+#                                     --batch_size 256 \
+#                                     --vector_cache /data/Cache/sq_glove300d.pt 
+
+# cd /code/BuboQA/relations
+# python3 -c "print('\n\n', '#'*20, 'Table 6 LSTM'.upper(), '#'*20)"
+# python3 -u train.py  --relation_prediction_mode LSTM \
+#                                      --fix_embed --data_dir /data/SimpleQuestionNotationRelation \
+#                                      --batch_size 256 \
+#                                      --vector_cache /data/Cache/sq_glove300d.pt
+# python3 -c "print('\n\n', '#'*20, 'Table 6 CNN'.upper(), '#'*20)"
+# python3 -u train.py  --relation_prediction_mode CNN \
+#                                      --fix_embed --data_dir /data/SimpleQuestionNotationRelation \
+#                                      --batch_size 256 \
+#                                      --vector_cache /data/Cache/sq_glove300d.pt
+
+cd /code/src
+python3 -c "print('\n\n', '#'*20, 'Table 7 & 8 Test'.upper(), '#'*20)"
+python3 -u train.py False NodeEdgeDetector rsq test
+
+python3 -c "print('\n\n', '#'*20, 'Table 7 & 8 Valid'.upper(), '#'*20)"
+python3 -u train.py False NodeEdgeDetector rsq valid
+
+# python3 -c "print('\n\n', '#'*20, 'Table 9 & 10 Test'.upper(), '#'*20)"
+# python3 -u train.py False NodeEdgeDetector sq test
+
+# python3 -c "print('\n\n', '#'*20, 'Table 9 & 10 Valid'.upper(), '#'*20)"
+# python3 -u train.py False NodeEdgeDetector sq valid
+
+python3 -c "print('\n\n', '#'*20, 'Table 11 BERT-LSTM-CRF'.upper(), '#'*20)"
+python3 -u train.py False BertLSTMCRF rsq test
+
+python3 -c "print('\n\n', '#'*20, 'Table 11 BERT-CNN'.upper(), '#'*20)"
+python3 -u train.py False BertCNN rsq test
+
+python3 -c "print('\n\n', '#'*20, 'Table 11 Multi-Depth'.upper(), '#'*20)"
+python3 -u train.py False MultiDepthNodeEdgeDetector rsq test
+
+python3 -c "print('\n\n', '#'*20, 'Table 11 Fine_tune BERT'.upper(), '#'*20)"
+python3 -u train.py False NodeEdgeDetector rsq test
+
+cd /code
+python3 -u tab12.py "$@"
+python3 -u tab13.py "$@"
+python3 -u tab14.py "$@"

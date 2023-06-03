@@ -10,6 +10,11 @@ RUN apt-get update \
         python3-wheel=0.34.2-1ubuntu0.1 \
     && rm -rf /var/lib/apt/lists/*
 
+RUN apt update \
+    && apt install -y default-jre \ 
+    && apt install -y default-jre
+
+RUN pip3 install -U --no-cache-dir numpy==1.23
 RUN pip3 install -U --no-cache-dir jupyter==1.0.0 
 RUN pip3 install -U --no-cache-dir nltk
 RUN pip3 install -U --no-cache-dir torch 
@@ -18,3 +23,12 @@ RUN pip3 install -U --no-cache-dir torchaudio
 RUN pip3 install -U --no-cache-dir torchtext==0.2.3  
 RUN pip3 install -U --no-cache-dir pytorch-crf==0.7.2  
 RUN pip3 install -U --no-cache-dir fuzzywuzzy  
+RUN pip3 install -U --no-cache-dir transformers
+RUN pip3 install -U --no-cache-dir pandas 
+RUN pip3 install -U --no-cache-dir scikit-learn 
+RUN pip3 install -U --no-cache-dir openpyxl 
+RUN pip3 install -U --no-cache-dir tabulate 
+RUN pip3 install -U --no-cache-dir PatternLite 
+RUN pip3 install -U --no-cache-dir python-terrier 
+RUN pip3 install -U --no-cache-dir --upgrade git+https://github.com/terrierteam/pyterrier_colbert.git 
+RUN pip3 install -U --no-cache-dir faiss-gpu==1.6.3 
