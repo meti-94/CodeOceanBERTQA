@@ -7,7 +7,8 @@ To run the code on Code Ocean, simply refer to the [relevant capsule](https://co
 ## Support
 If you have any questions or issues regarding this project, please feel free to reach out to us via email:
 
-- Mohammad Mehdi Jafari: mohamad.mehdi.jafari94@gmail.com 
 - Somayyeh Behmanesh: somayyeh.behmanesh@gmail.com 
+- Mohammad Mehdi Jafari: mohamad.mehdi.jafari94@gmail.com 
+
 
 We will do our best to respond to your inquiries as soon as possible. Thank you for your interest in this project!
